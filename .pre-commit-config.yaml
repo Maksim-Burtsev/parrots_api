@@ -3,3 +3,8 @@ repos:
     rev: 'refs/tags/22.3.0:refs/tags/22.3.0'
     hooks:
     -   id: black
+- repo: https://github.com/charliermarsh/ruff-pre-commit
+  rev: 'v0.0.206'
+  hooks:
+    - id: ruff
+      args: ["--force-exclude"]
