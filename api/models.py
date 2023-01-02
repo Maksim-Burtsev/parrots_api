@@ -1,9 +1,11 @@
+import json
 import random
 from typing import Callable
 
 from faker import Faker
 from peewee import *
 
+DEFAULT_BREEDS_PATH = 'api/default_breeds.json'
 db = PostgresqlDatabase('people', host='localhost')
 
 
@@ -28,19 +30,22 @@ class BaseModel(Model):
 
 class Breed(BaseModel):
     id = AutoField()
-    name = CharField(max_length=255)
+    name = CharField(max_length=255, unique=True)
     opening_time = DateTimeField(null=True)
 
-    def generate_fake_breeds(self, count: int) -> int:
-        # TODO find cite with list of them and parse it here once (its not fake for real)
-        pass
+    @classmethod
+    def load_default_breeds(cls) -> None:
+        with open(DEFAULT_BREEDS_PATH, 'r') as f:
+            raw_data = json.loads(f.read())
+        data = [{'name': breed} for breed in raw_data.values()]
+        cls.insert_many(data).execute()
 
 
 class Parrot(BaseModel):
     id = AutoField()
     name = CharField()
     age = IntegerField(null=True)
-    breed = ForeignKeyField(Breed, backref='parrots', null=True)
+    breed = ForeignKeyField(Breed, backref='parrots', null=True, on_delete='SET NULL')
 
     @classmethod
     def generate_fake_parrots(
@@ -56,4 +61,4 @@ class Parrot(BaseModel):
 
 
 if __name__ == '__main__':
-    Parrot.generate_fake_parrots(count=23)
+    pass
