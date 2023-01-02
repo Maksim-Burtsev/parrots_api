@@ -6,5 +6,3 @@ class ParrotSchema:
     name: str
     age: int | None
     breed: str | None
-
-
