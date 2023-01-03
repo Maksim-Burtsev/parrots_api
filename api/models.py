@@ -1,9 +1,10 @@
 import json
 import random
-from typing import Callable
+from typing import Callable, NamedTuple
 
 import pydantic
 from faker import Faker
+from loguru import logger
 from peewee import *
 from schemas import BreedSchema
 
@@ -11,11 +12,15 @@ DEFAULT_BREEDS_PATH = 'api/default_breeds.json'
 db = PostgresqlDatabase('people', host='localhost')
 
 
+class ObjCreated(NamedTuple):
+    obj: Model
+    created: bool
+
+
 def db_connect(func: Callable):
     def wrapper(*args, **kwargs):
-        db.connect()
-        result = func(*args, **kwargs)
-        db.close()
+        with db:
+            result = func(*args, **kwargs)
         return result
 
     return wrapper
@@ -29,25 +34,48 @@ class BaseModel(Model):
     class Meta:
         database = db
 
+    @classmethod
+    @db_connect
+    def update_or_create(
+        cls, data: pydantic.BaseModel, fields: list[str | None]
+    ) -> ObjCreated:
+        created = False
+        try:
+            obj = (
+                cls.select()
+                .where([getattr(cls, field) == getattr(data, field) for field in fields])
+                .get()
+            )
+            for attr, val in data.dict().items():
+                if getattr(obj, attr):
+                    setattr(obj, attr, val)
+            obj.save()
+        except Exception as exc:
+            logger.exception(exc)
+            obj = cls.create(**data.dict())
+            created = True
 
-@db_connect
-def update_or_create(
-    model: BaseModel, data: pydantic.BaseModel, fields: list[str]
-) -> BaseModel:
-    try:
-        obj = (
-            model.select()
-            .where([getattr(model, field) == getattr(data, field) for field in fields])
-            .get()
-        )
-        for attr, val in data.dict().values():
-            if getattr(obj, attr):
-                setattr(obj, attr, val)
-        obj.save()
-    except Exception:
-        obj = model.create(**data.dict())
+        return ObjCreated(obj, created)
 
-    return obj
+    @classmethod
+    @db_connect
+    def create_obj(cls, data: pydantic.BaseModel) -> Model:
+        return cls.create(**data.dict())
+
+    @classmethod
+    @db_connect
+    def delete_obj(cls, id: int) -> None:
+        pass
+
+    @classmethod
+    @db_connect
+    def update_obj(cls, id: int) -> None:
+        pass
+
+    @classmethod
+    @db_connect
+    def get_obj(cls, id: int) -> Model:
+        pass
 
 
 class Breed(BaseModel):
@@ -57,7 +85,7 @@ class Breed(BaseModel):
 
     @classmethod
     def update_or_create(cls, data: BreedSchema) -> None:
-        return update_or_create(cls, data, fields=['name'])
+        return super().update_or_create(data, fields=['name'])
 
     @classmethod
     def load_default_breeds(cls) -> None:
@@ -84,6 +112,10 @@ class Parrot(BaseModel):
             for _ in range(count)
         ]
         cls.insert_many(data).execute()
+
+    @classmethod
+    def update_or_create(cls, data: pydantic.BaseModel, fields: list[str]) -> ObjCreated:
+        return super().update_or_create(data, fields=['id'])
 
 
 if __name__ == '__main__':
