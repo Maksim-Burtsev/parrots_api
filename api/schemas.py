@@ -1,8 +1,14 @@
-from dataclasses import dataclass
+from datetime import datetime
+
+from pydantic import BaseModel
 
 
-@dataclass
-class ParrotSchema:
+class BreedSchema(BaseModel):
+    name: str
+    opening_time: datetime | None
+
+
+class ParrotSchema(BaseModel):
     name: str
     age: int | None
     breed: str | None

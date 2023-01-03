@@ -2,8 +2,10 @@ import json
 import random
 from typing import Callable
 
+import pydantic
 from faker import Faker
 from peewee import *
+from schemas import BreedSchema
 
 DEFAULT_BREEDS_PATH = 'api/default_breeds.json'
 db = PostgresqlDatabase('people', host='localhost')
@@ -28,10 +30,34 @@ class BaseModel(Model):
         database = db
 
 
+@db_connect
+def update_or_create(
+    model: BaseModel, data: pydantic.BaseModel, fields: list[str]
+) -> BaseModel:
+    try:
+        obj = (
+            model.select()
+            .where([getattr(model, field) == getattr(data, field) for field in fields])
+            .get()
+        )
+        for attr, val in data.dict().values():
+            if getattr(obj, attr):
+                setattr(obj, attr, val)
+        obj.save()
+    except Exception:
+        obj = model.create(**data.dict())
+
+    return obj
+
+
 class Breed(BaseModel):
     id = AutoField()
     name = CharField(max_length=255, unique=True)
     opening_time = DateTimeField(null=True)
+
+    @classmethod
+    def update_or_create(cls, data: BreedSchema) -> None:
+        return update_or_create(cls, data, fields=['name'])
 
     @classmethod
     def load_default_breeds(cls) -> None:
