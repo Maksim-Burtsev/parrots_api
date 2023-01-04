@@ -6,6 +6,7 @@ import pydantic
 from faker import Faker
 from loguru import logger
 from peewee import *
+from sanic.exceptions import SanicException
 from schemas import BreedSchema
 
 DEFAULT_BREEDS_PATH = 'api/default_breeds.json'
@@ -69,13 +70,13 @@ class BaseModel(Model):
 
     @classmethod
     @db_connect
-    def update_obj(cls, id: int) -> None:
-        pass
-
-    @classmethod
-    @db_connect
-    def get_obj(cls, id: int) -> Model:
-        pass
+    def get_or_404(cls, id: int) -> Model:
+        try:
+            obj = cls.get_by_id(id)
+        except Exception as exc:
+            logger.info(exc)
+            raise SanicException(status_code=404)
+        return obj
 
 
 class Breed(BaseModel):
@@ -94,6 +95,10 @@ class Breed(BaseModel):
         data = [{'name': breed} for breed in raw_data.values()]
         cls.insert_many(data).execute()
 
+    @classmethod
+    def breed_with_parrots(cls):
+        return cls.select()
+
 
 class Parrot(BaseModel):
     id = AutoField()
@@ -108,15 +113,21 @@ class Parrot(BaseModel):
         fake: Faker = Faker(),
     ) -> int:
         data = [
-            {'name': fake.first_name(), 'age': random.randint(10, 100)}
+            {
+                'name': fake.first_name() + 'test',
+                'age': random.randint(10, 100),
+                'breed_id': 1,
+            }
             for _ in range(count)
         ]
         cls.insert_many(data).execute()
 
     @classmethod
-    def update_or_create(cls, data: pydantic.BaseModel, fields: list[str]) -> ObjCreated:
-        return super().update_or_create(data, fields=['id'])
+    def update_or_create(
+        cls, data: pydantic.BaseModel, fields: list[str] = ['id']
+    ) -> ObjCreated:
+        return super().update_or_create(data, fields=fields)
 
 
 if __name__ == '__main__':
-    pass
+    print(Breed.get_or_404(10000))

@@ -4,6 +4,10 @@ from typing import Any
 from pydantic import BaseModel
 
 
+class BackrefsParam(BaseModel):
+    backrefs: bool
+
+
 class BreedSchema(BaseModel):
     name: str
     opening_time: datetime | None
@@ -17,3 +21,9 @@ class ParrotSchema(BaseModel):
     name: str
     age: int | None
     breed: str | None
+
+
+class BreedDetailSchema(BaseModel):
+    name: str
+    opening_time: datetime | None
+    parrots: list[ParrotSchema | None]
