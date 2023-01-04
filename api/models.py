@@ -6,6 +6,7 @@ import pydantic
 from faker import Faker
 from loguru import logger
 from peewee import *
+from playhouse.shortcuts import update_model_from_dict
 from sanic.exceptions import SanicException
 from schemas import BreedSchema
 
@@ -65,9 +66,13 @@ class BaseModel(Model):
 
     @classmethod
     @db_connect
-    def delete_obj(cls, id: int) -> None:
-        pass
+    def update_obj(cls, id: int, data: pydantic.BaseModel) -> Model:
+        obj = cls.get_or_404(id)
+        updated_obj = update_model_from_dict(obj, data)
+        updated_obj.save()
+        return updated_obj
 
+    # TODO make custom .get() because this use pk
     @classmethod
     @db_connect
     def get_or_404(cls, id: int) -> Model:

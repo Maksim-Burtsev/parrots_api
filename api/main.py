@@ -1,36 +1,38 @@
 from models import Breed, BreedSchema
-from playhouse.shortcuts import model_to_dict
 from sanic import Sanic
 from sanic.response import json
 from sanic_ext import validate
-from schemas import BackrefsParam
+from schemas import BackrefsParam, BreedDetailSchema
+from tools import obj_to_dict
 
 app = Sanic('parrots')
 
 
-@app.route('/create_breed')
+@app.post('/create_breed')
 @validate(json=BreedSchema)
 async def create_breed(request, body: BreedSchema):
     obj, created = Breed.update_or_create(body)
     return json({'created': created, 'id': obj.id})
 
 
-@app.route('/detail_breed/<breed_id:int>')
+@app.get('/detail_breed/<breed_id:int>')
 @validate(query=BackrefsParam)
 async def detail_breed(request, breed_id: int, query: BackrefsParam):
-    return json(model_to_dict(Breed.get_or_404(breed_id), backrefs=query.backrefs))
+    return json(obj_to_dict(Breed.get_or_404(breed_id), backrefs=query.backrefs))
 
 
-@app.route('/delete_breed')
-@validate(json=BreedSchema)
-async def delete_breed(request):
-    pass
+@app.delete('/delete_breed/<breed_id:int>')
+async def delete_breed(request, breed_id):
+    Breed.delete_by_id(breed_id)
+    return json({'status': 'ok'})
 
 
-@app.route('/update_breed')
-@validate(json=BreedSchema)
-async def update_breed(request):
-    pass
+@app.patch('/update_breed/<breed_id:int>')
+@validate(json=BreedDetailSchema)
+async def update_breed(request, breed_id: int, body: BreedDetailSchema):
+    obj = Breed.update_obj(breed_id, data=body.dict())
+    obj.save()
+    return json({'status': 'ok'})
 
 
 if __name__ == '__main__':

@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 
 class BackrefsParam(BaseModel):
-    backrefs: bool
+    backrefs: bool | None
 
 
 class BreedSchema(BaseModel):
@@ -26,4 +26,4 @@ class ParrotSchema(BaseModel):
 class BreedDetailSchema(BaseModel):
     name: str
     opening_time: datetime | None
-    parrots: list[ParrotSchema | None]
+    parrots: list[ParrotSchema | None] | None
