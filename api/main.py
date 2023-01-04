@@ -32,7 +32,7 @@ async def delete_breed(request, breed_id):
 async def update_breed(request, breed_id: int, body: BreedDetailSchema):
     obj = Breed.update_obj(breed_id, data=body.dict())
     obj.save()
-    return json({'status': 'ok'})
+    return json(obj_to_dict(obj))
 
 
 if __name__ == '__main__':
