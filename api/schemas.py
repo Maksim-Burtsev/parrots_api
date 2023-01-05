@@ -1,11 +1,12 @@
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, NonNegativeInt
 
 
-class BackrefsParam(BaseModel):
+class QueryParam(BaseModel):
     backrefs: bool | None
+    limit: NonNegativeInt | None = None
 
 
 class BreedSchema(BaseModel):

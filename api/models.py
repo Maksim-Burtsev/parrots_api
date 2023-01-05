@@ -14,6 +14,10 @@ DEFAULT_BREEDS_PATH = 'api/default_breeds.json'
 db = PostgresqlDatabase('people', host='localhost')
 
 
+class ObjDoesNotExists(Exception):
+    ...
+
+
 class ObjCreated(NamedTuple):
     obj: Model
     created: bool
@@ -72,7 +76,20 @@ class BaseModel(Model):
         updated_obj.save()
         return updated_obj
 
-    # TODO make custom .get() because this use pk
+    def get_by_id(cls, id: int) -> Model:
+        opened = False
+        if db.is_closed():
+            db.connect()
+            opened = True
+        try:
+            obj = cls.select().where(cls.id == id).get()
+        except Exception as exc:
+            logger.info(exc)
+            raise ObjDoesNotExists(f"{cls} doesn't have obj with {id=}")
+        if opened:
+            db.close()
+        return obj
+
     @classmethod
     @db_connect
     def get_or_404(cls, id: int) -> Model:
@@ -117,11 +134,12 @@ class Parrot(BaseModel):
         count: int,
         fake: Faker = Faker(),
     ) -> int:
+        breed_ids = list(Breed.select(Breed.id))
         data = [
             {
                 'name': fake.first_name() + 'test',
                 'age': random.randint(10, 100),
-                'breed_id': 1,
+                'breed_id': random.choice(breed_ids),
             }
             for _ in range(count)
         ]
