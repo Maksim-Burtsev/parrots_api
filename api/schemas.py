@@ -1,7 +1,8 @@
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, NonNegativeInt
+from pydantic import BaseModel, NonNegativeInt, validator
+from sanic.exceptions import SanicException
 
 
 class QueryParam(BaseModel):
@@ -21,7 +22,17 @@ class BreedSchema(BaseModel):
 class ParrotSchema(BaseModel):
     name: str
     age: int | None
-    breed: str | None
+    breed_id: int | None
+
+    @validator('breed_id')
+    def breed_id_exists(cls, v):
+        from models import Breed, ObjDoesNotExists
+
+        try:
+            Breed.get_by_id(id=v)
+        except ObjDoesNotExists:
+            raise SanicException('Breed does not exists', status_code=404)
+        return v
 
 
 class BreedDetailSchema(BaseModel):

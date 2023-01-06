@@ -5,7 +5,15 @@ from typing import Callable, NamedTuple
 import pydantic
 from faker import Faker
 from loguru import logger
-from peewee import *
+from peewee import (
+    AutoField,
+    CharField,
+    DateTimeField,
+    ForeignKeyField,
+    IntegerField,
+    Model,
+    PostgresqlDatabase,
+)
 from playhouse.shortcuts import update_model_from_dict
 from sanic.exceptions import SanicException
 from schemas import BreedSchema
@@ -43,7 +51,9 @@ class BaseModel(Model):
     @classmethod
     @db_connect
     def update_or_create(
-        cls, data: pydantic.BaseModel, fields: list[str | None]
+        cls,
+        data: pydantic.BaseModel,
+        fields: list[str | None],
     ) -> ObjCreated:
         created = False
         try:
@@ -76,6 +86,7 @@ class BaseModel(Model):
         updated_obj.save()
         return updated_obj
 
+    @classmethod
     def get_by_id(cls, id: int) -> Model:
         opened = False
         if db.is_closed():
@@ -89,6 +100,11 @@ class BaseModel(Model):
         if opened:
             db.close()
         return obj
+
+    @classmethod
+    def delete_by_id(cls, id: int) -> None:
+        obj = cls.get_or_404(id)
+        obj.delete_instance()
 
     @classmethod
     @db_connect
@@ -147,7 +163,9 @@ class Parrot(BaseModel):
 
     @classmethod
     def update_or_create(
-        cls, data: pydantic.BaseModel, fields: list[str] = ['id']
+        cls,
+        data: pydantic.BaseModel,
+        fields: list[str] = ['id'],
     ) -> ObjCreated:
         return super().update_or_create(data, fields=fields)
 
