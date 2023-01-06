@@ -118,7 +118,7 @@ class BaseModel(Model):
 
 
 class Breed(BaseModel):
-    id = AutoField()
+    id = AutoField(index=True)
     name = CharField(max_length=255, unique=True)
     opening_time = DateTimeField(null=True)
 
@@ -139,10 +139,16 @@ class Breed(BaseModel):
 
 
 class Parrot(BaseModel):
-    id = AutoField()
+    id = AutoField(index=True)
     name = CharField()
     age = IntegerField(null=True)
-    breed = ForeignKeyField(Breed, backref='parrots', null=True, on_delete='SET NULL')
+    breed = ForeignKeyField(
+        Breed,
+        backref='parrots',
+        null=True,
+        on_delete='SET NULL',
+        index=True,
+    )
 
     @classmethod
     def generate_fake_parrots(
@@ -171,4 +177,4 @@ class Parrot(BaseModel):
 
 
 if __name__ == '__main__':
-    print(Breed.get_or_404(10000))
+    Parrot.generate_fake_parrots(1_000)
